@@ -1,14 +1,42 @@
-flask==2.3.3
-flask-sqlalchemy==3.1.1
-werkzeug==2.3.7
-mysql-connector-python==8.1.0
-psycopg2-binary==2.9.7
-python-crontab==3.0.0
-boto3==1.28.38
-requests==2.31.0
+# Flask and extensions
+Flask==2.3.3
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.5
+Flask-WTF==1.2.1
+Flask-Login==0.6.3
+Flask-Bcrypt==1.0.1
+Flask-JWT-Extended==4.6.0
+Flask-RESTful==0.3.10
+Flask-Limiter==3.5.0
+Flask-Talisman==1.1.0
+Flask-CORS==4.0.0
+Flask-APScheduler==1.13.1
+
+# Database drivers
+psycopg2-binary==2.9.9
+mysqlclient==2.2.1
+SQLAlchemy==2.0.28
+
+# Cloud storage and backups
+boto3==1.34.49
+python-dotenv==1.0.1
+
+# Security
+cryptography==42.0.4
+Werkzeug==2.3.7
+wtforms==3.1.1
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Utilities
 click==8.1.7
-itsdangerous==2.1.2
-Jinja2==3.1.2
-MarkupSafe==2.1.3
-SQLAlchemy==2.0.20
-blinker==1.6.2 
+gunicorn==21.2.0
+rich==13.7.0
+python-slugify==8.0.1
+validators==0.22.0
+
+# Rate Limiting and Security
+email-validator==2.1.0.post1
+talisman==1.0.0 

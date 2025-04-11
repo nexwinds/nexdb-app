@@ -1,37 +1,65 @@
+"""
+NEXDB - Backup model
+"""
+
 from datetime import datetime
-from app.models import db
+import json
+from app import db
 
 class Backup(db.Model):
+    """Backup model for database backups."""
     __tablename__ = 'backups'
     
     id = db.Column(db.Integer, primary_key=True)
-    db_type = db.Column(db.String(20), nullable=False)  # mysql or postgres
-    db_name = db.Column(db.String(64), nullable=False)
-    file_path = db.Column(db.String(255), nullable=False)
-    file_size = db.Column(db.Integer, default=0)  # Size in bytes
-    status = db.Column(db.String(20), default='completed')  # completed, failed, in_progress
-    s3_uploaded = db.Column(db.Boolean, default=False)
-    s3_path = db.Column(db.String(255), nullable=True)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    filename = db.Column(db.String(255), nullable=False)
+    size_bytes = db.Column(db.BigInteger)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='pending')  # pending, completed, failed
+    location = db.Column(db.String(20), default='local')  # local, s3
+    s3_path = db.Column(db.String(255))
+    database_id = db.Column(db.Integer, db.ForeignKey('databases.id'), nullable=False)
+    metadata = db.Column(db.Text)  # JSON-encoded metadata
     
-    def __init__(self, db_type, db_name, file_path, created_by=None, file_size=0):
-        self.db_type = db_type
-        self.db_name = db_name
-        self.file_path = file_path
-        self.created_by = created_by
-        self.file_size = file_size
+    @property
+    def metadata_dict(self):
+        """Return metadata as a dictionary."""
+        if not self.metadata:
+            return {}
+        return json.loads(self.metadata)
     
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'db_type': self.db_type,
-            'db_name': self.db_name,
-            'file_path': self.file_path,
-            'file_size': self.file_size,
-            'status': self.status,
-            's3_uploaded': self.s3_uploaded,
-            's3_path': self.s3_path,
-            'created_by': self.created_by,
-            'created_at': self.created_at.isoformat()
-        } 
+    @metadata_dict.setter
+    def metadata_dict(self, metadata_dict):
+        """Store metadata dictionary as JSON."""
+        self.metadata = json.dumps(metadata_dict)
+    
+    def __repr__(self):
+        return f'<Backup {self.filename}>'
+
+
+class BackupSchedule(db.Model):
+    """BackupSchedule model for scheduled database backups."""
+    __tablename__ = 'backup_schedules'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    database_id = db.Column(db.Integer, db.ForeignKey('databases.id'), nullable=False)
+    frequency = db.Column(db.String(20), nullable=False)  # daily, weekly, monthly
+    time = db.Column(db.Time, nullable=False)  # Time of day to run backup
+    day_of_week = db.Column(db.Integer)  # 0=Monday, 6=Sunday (for weekly backups)
+    day_of_month = db.Column(db.Integer)  # 1-31 (for monthly backups)
+    retention_count = db.Column(db.Integer, default=7)  # Number of backups to keep
+    enabled = db.Column(db.Boolean, default=True)
+    upload_to_s3 = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    database = db.relationship('Database', backref='backup_schedules')
+    
+    def get_next_run_time(self):
+        """Calculate the next run time based on the schedule."""
+        # This would normally use APScheduler's utilities to calculate the next run time
+        # For simplicity, we'll leave the implementation details out
+        pass
+    
+    def __repr__(self):
+        return f'<BackupSchedule {self.frequency} for Database ID {self.database_id}>' 

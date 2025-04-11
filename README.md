@@ -1,225 +1,84 @@
-# 🚀 NEXDB – Next Generation Server Control Panel to Manage Databases
+# NEXDB - Modern Web-Based Database Control Panel
 
-**NEXDB** is a lightweight, intuitive, and script-deployable control panel to manage **MySQL** and **PostgreSQL** databases on Ubuntu 24.04 LTS. Built with **Python (Flask)** and styled using **Tailwind CSS**, NEXDB empowers developers and sysadmins with essential database tools from a simple, secure web interface.
+NEXDB is a sleek and secure web-based control panel for managing MySQL and PostgreSQL databases on Ubuntu 24.04. It serves as a more secure, maintainable, and user-friendly alternative to tools like EasyPanel or CloudPanel.
 
-![NEXDB Banner](https://via.placeholder.com/800x400?text=NEXDB+Dashboard)
+## Core Features
 
-## 🔧 Features
+### Database Management
+- Create and manage MySQL/PostgreSQL databases and users
+- Securely handle credentials
+- Configure UFW for controlled remote access
 
-- ✅ **Database Management**
-  - Install & manage MySQL and PostgreSQL databases
-  - Create database users with granular permissions
-  - View and manage database credentials
-  - Open external database ports (UFW) with a single click
+### Backup System
+- Support for on-demand and scheduled backups
+- Seamless integration with Amazon S3 for remote storage
 
-- 💾 **Backup Solutions**
-  - Create on-demand database backups
-  - Schedule automated backups (daily, weekly, monthly)
-  - Integration with Amazon S3 for remote backup storage
-  - Download or delete backups from the web interface
+### Project Organization
+- Group related databases under "projects" for cleaner management
 
-- 👥 **Multi-User Support**
-  - Role-based access control
-  - Admin and regular user accounts
-  - Individual user settings and preferences
+### User Management
+- Role-based access control
+- Secure session handling for web users
 
-- 🔄 **Theme Support**
-  - Toggle between light and dark themes
-  - Personalized theme preferences per user
+### Frontend
+- Built with Tailwind CSS and semantic HTML
+- Fully responsive and accessibility-friendly UI
 
-- 🧰 **API Interface**
-  - RESTful API for automation and scripting
-  - Token-based authentication for secure API access
-  - Complete API documentation included
+## Technical Stack
+- Backend: Python 3.10+, Flask 2.3+
+- Databases Supported: MySQL & PostgreSQL
+- Authentication: JWT (for API), Session-based (for web)
 
-- 🛡️ **Security Features**
-  - Session timeout configuration
-  - Secure password management
-  - System runs as a systemd service on port `8080`
+## Security Features
+- Secure password hashing
+- Input sanitization
+- CSRF protection
+- Rate limiting
+- Proper security headers
 
-## 📦 Installation
+## Installation
 
-> ⚠️ Supported on: **Ubuntu 24.04 LTS**
+### Prerequisites
+- Ubuntu 24.04
+- Python 3.10+
+- MySQL and/or PostgreSQL
 
-### One-Line Installation
-
-```bash
-curl -sSL https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-install.sh | sudo bash
-```
-
-### Manual Installation
+### Setup
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/nexwinds/nexdb-app.git
+git clone https://github.com/yourusername/nexdb.git
+cd nexdb
 ```
 
 2. Run the installation script:
 ```bash
-cd nexdb-app
-chmod +x nexdb-install.sh
-sudo ./nexdb-install.sh
+sudo ./install.sh
 ```
 
-The script will:
-- Install all dependencies (Python, MySQL, PostgreSQL)
-- Set up the Flask application with database support
-- Configure systemd service for automatic startup
-- Create an admin user and secure password
-- Start NEXDB on http://<your-ip>:8080
+3. Access the web interface at:
+```
+http://your-server-ip:5000
+```
 
-### Verifying Your Installation
+## Development
 
-After installation, you can verify that everything is working correctly:
-
+### Setup Development Environment
 ```bash
-sudo bash verify-installation.sh
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Run development server
+flask run
 ```
 
-This script will check:
-- Installation directory and files
-- Systemd service status
-- Network connectivity and port bindings
-- Firewall rules
-- Web service response
-
-## 🔐 Accessing the Panel
-
-After installation, open your browser:
-
-```
-http://<your-server-ip>:8080
-```
-
-Log in using the admin credentials displayed at the end of the installation.
-
-## 🛠️ Troubleshooting
-
-If you encounter issues during installation or when accessing the panel, we provide comprehensive scripts to help:
-
-### Common Issues
-
-1. **ERR_CONNECTION_REFUSED**: If you can't connect to the panel, check that the service is running:
-   ```bash
-   sudo systemctl status nexdb
-   ```
-
-2. **Python Import Error**: If logs show `ImportError: cannot import name 'run_app' from 'app'`, use our fix script:
-   ```bash
-   sudo bash nexdb-fix.sh
-   ```
-
-### Provided Scripts
-
-- **nexdb-install.sh**: Our enhanced installation script with automatic error prevention and recovery
-- **nexdb-fix.sh**: A comprehensive fix script that resolves Python module import issues and other common problems
-- **nexdb-uninstall.sh**: Removes NEXDB from your system with two options:
-  - Standard mode: `sudo bash nexdb-uninstall.sh` (asks for confirmation)
-  - Force mode: `sudo bash nexdb-uninstall.sh --force` (no confirmation required)
-
-For one-line uninstallation with force mode:
-```bash
-curl -sSL https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-uninstall.sh | sudo bash -s -- --force
-```
-
-> Note: Due to the interactive nature of the uninstall confirmation, it's recommended to download the script first rather than piping directly through curl for the standard interactive mode.
-
-- **verify-installation.sh**: Checks if your installation is working correctly
-- **test_connection.py**: Tests connectivity to the NEXDB server from your local machine
-
-For comprehensive troubleshooting steps, refer to our [Troubleshooting Guide](TROUBLESHOOTING.md).
-
-## 🖥️ Dashboard Preview
-
-![NEXDB Dashboard](https://via.placeholder.com/800x400?text=NEXDB+Dashboard+Preview)
-
-## 📁 Project Structure
-
-```
-/opt/nexdb/
-├── app/                    # Flask application
-│   ├── models/             # Database models (user, backup, db_credential)
-│   ├── routes/             # API and web routes (api, auth, backup, database, etc.)
-│   ├── services/           # Business logic
-│   ├── static/             # CSS, JS, images
-│   └── templates/          # Tailwind HTML templates
-├── config/                 # Configuration files
-├── backups/                # Backup destination
-├── nexdb-install.sh        # Installation script
-├── nexdb-fix.sh            # Troubleshooting script for common issues
-├── nexdb-uninstall.sh      # Uninstallation script
-├── verify-installation.sh  # Installation verification script
-└── requirements.txt        # Python dependencies
-```
-
-## 🚀 Example API Usage
-
-### Get a list of databases:
-
-```bash
-curl -H "X-API-Token: your_api_token" http://<your-ip>:8080/api/databases
-```
-
-### Create a new database:
-
-```bash
-curl -X POST -H "X-API-Token: your_api_token" \
-  -H "Content-Type: application/json" \
-  -d '{"db_type": "mysql", "db_name": "my_new_db"}' \
-  http://<your-ip>:8080/api/databases/create
-```
-
-### Create a database backup:
-
-```bash
-curl -X POST -H "X-API-Token: your_api_token" \
-  -H "Content-Type: application/json" \
-  -d '{"db_type": "postgres", "db_name": "my_database"}' \
-  http://<your-ip>:8080/api/backups/create
-```
-
-## 🔐 Security Recommendations
-
-- Change the admin password immediately after installation
-- Consider placing NEXDB behind a reverse proxy with SSL (like Nginx)
-- Restrict access to the web interface using IP-based firewall rules
-- Regularly update the application and its dependencies
-
-## 🔄 Upgrading and Maintenance
-
-To upgrade NEXDB to a newer version:
-
-1. First, back up any custom configurations
-2. Uninstall the current version:
-   ```bash
-   sudo bash nexdb-uninstall.sh
-   ```
-3. Install the new version using the enhanced installation script:
-   ```bash
-   sudo bash nexdb-install.sh
-   ```
-
-For fixing issues without a full reinstallation, use our comprehensive fix script:
-```bash
-sudo bash nexdb-fix.sh
-```
-
-## 🤝 Contributing
-
-Pull requests are welcome! Please feel free to submit issues for bugs or feature requests.
-
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add some amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-Crafted with ❤️ by [Diogo Cardoso](https://github.com/nexwinds)
-
-*NEXDB - Simple tools for powerful people.* 
+## License
+[MIT License](LICENSE) 

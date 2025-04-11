@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - NEXDB{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg leading-6 font-medium text-gray-900">Your Profile</h2>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Update your personal information and password</p>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-xl font-semibold">
+                    {{ user.username[0].upper() }}
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-200 p-4 sm:p-6">
+                <form action="{{ url_for('auth.profile') }}" method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                            <div class="sm:col-span-3">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="mt-1">
+                                    {{ form.username(class="form-input", id="username", value=user.username) }}
+                                </div>
+                                {% if form.username.errors %}
+                                <p class="mt-2 text-sm text-red-600">
+                                    {% for error in form.username.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label for="email" class="form-label">Email address</label>
+                                <div class="mt-1">
+                                    {{ form.email(class="form-input", id="email", value=user.email) }}
+                                </div>
+                                {% if form.email.errors %}
+                                <p class="mt-2 text-sm text-red-600">
+                                    {% for error in form.email.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-6">
+                            <h3 class="text-lg font-medium text-gray-900">Change Password</h3>
+                            <p class="mt-1 text-sm text-gray-500">Leave blank if you don't want to change your password</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                            <div class="sm:col-span-6">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <div class="mt-1">
+                                    {{ form.current_password(class="form-input", id="current_password", placeholder="••••••••") }}
+                                </div>
+                                {% if form.current_password.errors %}
+                                <p class="mt-2 text-sm text-red-600">
+                                    {% for error in form.current_password.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <div class="mt-1">
+                                    {{ form.new_password(class="form-input", id="new_password", placeholder="••••••••") }}
+                                </div>
+                                {% if form.new_password.errors %}
+                                <p class="mt-2 text-sm text-red-600">
+                                    {% for error in form.new_password.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label for="new_password_confirm" class="form-label">Confirm New Password</label>
+                                <div class="mt-1">
+                                    {{ form.new_password_confirm(class="form-input", id="new_password_confirm", placeholder="••••••••") }}
+                                </div>
+                                {% if form.new_password_confirm.errors %}
+                                <p class="mt-2 text-sm text-red-600">
+                                    {% for error in form.new_password_confirm.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="border-t border-gray-200 p-4 sm:p-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Account Information</h3>
+                        <p class="mt-1 text-sm text-gray-500">Other details about your account</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 border-t border-gray-100">
+                    <dl class="divide-y divide-gray-100">
+                        <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                            <dt class="text-sm font-medium leading-6 text-gray-900">Username</dt>
+                            <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{ user.username }}</dd>
+                        </div>
+                        <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                            <dt class="text-sm font-medium leading-6 text-gray-900">Email</dt>
+                            <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{ user.email }}</dd>
+                        </div>
+                        <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                            <dt class="text-sm font-medium leading-6 text-gray-900">Account created</dt>
+                            <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{ user.created_at.strftime('%B %d, %Y') }}</dd>
+                        </div>
+                        <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                            <dt class="text-sm font-medium leading-6 text-gray-900">Last login</dt>
+                            <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                                {% if user.last_login_at %}
+                                {{ user.last_login_at.strftime('%B %d, %Y at %H:%M') }}
+                                {% else %}
+                                Never
+                                {% endif %}
+                            </dd>
+                        </div>
+                        <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                            <dt class="text-sm font-medium leading-6 text-gray-900">Roles</dt>
+                            <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                                {% for role in user.roles %}
+                                <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 mr-1">
+                                    {{ role.name }}
+                                </span>
+                                {% endfor %}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

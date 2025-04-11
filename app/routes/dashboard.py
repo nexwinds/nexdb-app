@@ -1,16 +1,6 @@
 from flask import render_template, redirect, url_for, session, request, flash
 from app.routes import dashboard_bp
-from functools import wraps
-
-# Simple login_required decorator that can be replaced by the auth module's
-# decorator once that module is fully functional
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # For emergency access, we're allowing all traffic through
-        # This should be replaced with proper auth checking in production
-        return f(*args, **kwargs)
-    return decorated_function
+from app.routes.auth import login_required
 
 @dashboard_bp.route('/')
 @login_required

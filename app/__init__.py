@@ -35,6 +35,9 @@ def create_app():
     # Root route
     @app.route('/')
     def index():
+        from flask import session
+        if 'user_id' not in session:
+            return redirect(url_for('auth.login'))
         return redirect(url_for('dashboard.index'))
     
     # Health check endpoint

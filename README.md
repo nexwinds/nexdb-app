@@ -115,7 +115,15 @@ If you encounter issues during installation or when accessing the panel, we prov
 - **nexdb-fix.sh**: A comprehensive fix script that resolves Python module import issues and other common problems
 - **nexdb-uninstall.sh**: Removes NEXDB from your system with two options:
   - Standard mode: `sudo bash nexdb-uninstall.sh` (asks for confirmation)
-  - Force mode: `sudo bash nexdb-uninstall.sh --force` (no confirmation)
+  - Force mode: `sudo bash nexdb-uninstall.sh --force` (no confirmation required)
+
+For one-line uninstallation with force mode:
+```bash
+curl -sSL https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-uninstall.sh | sudo bash -s -- --force
+```
+
+> Note: Due to the interactive nature of the uninstall confirmation, it's recommended to download the script first rather than piping directly through curl for the standard interactive mode.
+
 - **verify-installation.sh**: Checks if your installation is working correctly
 - **test_connection.py**: Tests connectivity to the NEXDB server from your local machine
 

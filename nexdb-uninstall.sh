@@ -44,14 +44,27 @@ fi
 
 # Ask for confirmation before deleting files (unless in force mode)
 if [ "$FORCE_MODE" = false ]; then
-  echo -e "\n⚠️ Warning: This will delete all NEXDB files and data, including backups."
-  echo -e "MySQL and PostgreSQL databases will NOT be removed."
-  echo -e "Are you sure you want to continue? (y/n)"
-  read -n 1 -r REPLY
-  echo
+  # Check if script is running in a pipe (e.g., curl | bash)
+  if [ -t 0 ]; then
+    # Running in interactive terminal
+    echo -e "\n⚠️ Warning: This will delete all NEXDB files and data, including backups."
+    echo -e "MySQL and PostgreSQL databases will NOT be removed."
+    echo -e "Are you sure you want to continue? (y/n)"
+    read -n 1 -r REPLY
+    echo
 
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "\n❌ Uninstallation cancelled. Service is still disabled but files remain."
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo -e "\n❌ Uninstallation cancelled. Service is still disabled but files remain."
+      exit 1
+    fi
+  else
+    # Running in a pipe (e.g., curl | bash)
+    echo -e "\n⚠️ Warning: This script appears to be running from a pipe (curl | bash)."
+    echo -e "Interactive confirmation is not possible in this mode."
+    echo -e "Please run this script directly with one of the following methods:"
+    echo -e "  1. Download and run: wget https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-uninstall.sh && sudo bash nexdb-uninstall.sh"
+    echo -e "  2. Use force mode: curl -sSL https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-uninstall.sh | sudo bash -s -- --force"
+    echo -e "\n❌ Uninstallation cancelled. Service is disabled but files remain."
     exit 1
   fi
 fi

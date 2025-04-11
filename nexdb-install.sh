@@ -1,7 +1,8 @@
 #!/bin/bash
 # nexdb-install.sh - Installation script for NEXDB
 
-set -e
+# Disable "exit on error" to better handle errors
+set +e
 
 echo -e "\n🚀 Welcome to NEXDB Installer!"
 echo -e "=============================="
@@ -31,7 +32,7 @@ echo -e "\n📦 Updating system & installing dependencies..."
 apt update && apt install -y \
   python3 python3-pip python3-venv \
   mysql-server postgresql postgresql-contrib \
-  ufw curl git
+  ufw curl git rsync
 
 # Create Python virtual environment
 echo -e "\n🐍 Setting up Python virtual environment..."
@@ -40,35 +41,47 @@ source $INSTALL_DIR/venv/bin/activate
 
 # Install Python dependencies
 echo -e "\n📚 Installing Python dependencies..."
-pip install flask flask-sqlalchemy werkzeug mysql-connector-python psycopg2-binary python-crontab boto3
+pip install -U flask flask-sqlalchemy werkzeug mysql-connector-python psycopg2-binary python-crontab boto3
 
-# Copy application files to install directory
+# Get the absolute path of the script
+SCRIPT_PATH=$(readlink -f "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+SCRIPT_NAME=$(basename "$SCRIPT_PATH")
+
 echo -e "\n📋 Copying application code to $INSTALL_DIR..."
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-# Copy nexdb-install.sh to the install directory explicitly
-cp "${SCRIPT_DIR}/nexdb-install.sh" "${INSTALL_DIR}/" 2>/dev/null || true
-
-# Use rsync to copy all other files, excluding certain directories/files
-rsync -av \
-  --exclude=".git/" \
-  --exclude=".ssh/" \
-  --exclude="venv/" \
-  --exclude="*.pyc" \
-  --exclude="__pycache__/" \
-  "${SCRIPT_DIR}/" "${INSTALL_DIR}/"
+echo -e "  Script path: $SCRIPT_PATH"
+echo -e "  Script directory: $SCRIPT_DIR"
 
 # Create backup directory
 mkdir -p $INSTALL_DIR/backups
 
+# First, explicitly copy this installation script to the destination
+echo -e "\n📄 Copying installation script..."
+cp "$SCRIPT_PATH" "$INSTALL_DIR/$SCRIPT_NAME"
+if [ $? -eq 0 ]; then
+  echo -e "  ✅ Installation script copied successfully to $INSTALL_DIR/$SCRIPT_NAME"
+  chmod +x "$INSTALL_DIR/$SCRIPT_NAME"
+else
+  echo -e "  ❌ Failed to copy installation script. Continuing anyway..."
+fi
+
+# Use rsync to copy all other files, with explicit exclusions
+echo -e "\n📁 Copying remaining files..."
+rsync -av \
+  --exclude=".git/" \
+  --exclude=".ssh/" \
+  --exclude="authorized_keys" \
+  --exclude="id_rsa" \
+  --exclude="id_rsa.pub" \
+  --exclude="known_hosts" \
+  --exclude="venv/" \
+  --exclude="*.pyc" \
+  --exclude="__pycache__/" \
+  "$SCRIPT_DIR/" "$INSTALL_DIR/"
+
 # Set permissions
 echo -e "\n🔒 Setting permissions..."
 chown -R root:root $INSTALL_DIR
-if [ -f "$INSTALL_DIR/nexdb-install.sh" ]; then
-  chmod +x $INSTALL_DIR/nexdb-install.sh
-else
-  echo -e "⚠️  Warning: Could not set executable permission on nexdb-install.sh (file not found)"
-fi
 
 # Create systemd service
 echo -e "\n⚙️  Creating systemd service..."
@@ -114,6 +127,10 @@ systemctl start nexdb
 # Get admin password from app config
 if [ -f "$INSTALL_DIR/config/__init__.py" ]; then
   ADMIN_PASS=$(grep -oP "(?<=ADMIN_PASS = os.environ.get\('NEXDB_ADMIN_PASS', ')[^']*" $INSTALL_DIR/config/__init__.py)
+  if [ -z "$ADMIN_PASS" ]; then
+    ADMIN_PASS="admin123" # Fallback password if grep fails
+    echo -e "⚠️  Warning: Could not extract admin password from config. Using default password"
+  fi
 else
   ADMIN_PASS="admin123" # Fallback password if config file not found
   echo -e "⚠️  Warning: Could not find config file. Using default admin password"

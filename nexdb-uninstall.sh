@@ -1,6 +1,26 @@
 #!/bin/bash
-# nexdb-uninstall.sh - Uninstallation script for NEXDB
-# Supports both interactive and force modes
+# nexdb-uninstall.sh - Script to completely remove NEXDB from the system
+# This will remove services, files, and clean up database entries
+
+# Disable "exit on error" to better handle errors
+set +e
+
+echo -e "\n⚠️  NEXDB Uninstaller"
+echo -e "===================="
+echo -e "This script will completely remove NEXDB from your system including:"
+echo -e "- The NEXDB service"
+echo -e "- All NEXDB files in /opt/nexdb"
+echo -e "- Firewall rules created for NEXDB"
+echo -e "\nWARNING: This will NOT remove your databases or database servers (MySQL/PostgreSQL),"
+echo -e "but will remove the NEXDB management interface."
+
+# Confirm uninstallation
+read -p "Are you sure you want to completely remove NEXDB? (y/n) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  echo -e "\n❌ Uninstallation cancelled."
+  exit 1
+fi
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -8,73 +28,61 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# Check for --force flag
-FORCE_MODE=false
-if [[ "$1" == "--force" ]]; then
-  FORCE_MODE=true
-  echo -e "\n🔄 NEXDB Force Uninstaller"
-  echo -e "=========================="
-  echo -e "⚠️ Force mode enabled. NO confirmation will be requested."
+# Installation directory
+INSTALL_DIR="/opt/nexdb"
+SERVICE_FILE="/etc/systemd/system/nexdb.service"
+
+echo -e "\n🛑 Stopping NEXDB service..."
+systemctl stop nexdb
+systemctl disable nexdb
+echo "✅ Service stopped and disabled."
+
+echo -e "\n🗑️ Removing systemd service file..."
+if [ -f "$SERVICE_FILE" ]; then
+  rm -f "$SERVICE_FILE"
+  systemctl daemon-reload
+  echo "✅ Service file removed."
 else
-  echo -e "\n🔄 NEXDB Uninstaller"
-  echo -e "===================="
+  echo "❓ Service file not found. Skipping."
 fi
 
-# Stop and disable the service
-echo -e "\n🛑 Stopping NEXDB service..."
-systemctl stop nexdb 2>/dev/null || true
-systemctl disable nexdb 2>/dev/null || true
-
-# Remove systemd service
-echo -e "\n🗑️ Removing systemd service..."
-rm -f /etc/systemd/system/nexdb.service
-systemctl daemon-reload
+echo -e "\n🧹 Removing NEXDB installation directory..."
+if [ -d "$INSTALL_DIR" ]; then
+  # Create backup of the data directory first if it exists
+  if [ -d "$INSTALL_DIR/backups" ] && [ "$(ls -A "$INSTALL_DIR/backups")" ]; then
+    BACKUP_DIR="/root/nexdb-backups-$(date +%Y%m%d-%H%M%S)"
+    echo "📦 Creating backup of existing backups at $BACKUP_DIR"
+    mkdir -p "$BACKUP_DIR"
+    cp -r "$INSTALL_DIR/backups" "$BACKUP_DIR/"
+    echo "✅ Backups saved to $BACKUP_DIR"
+  fi
+  
+  # Remove NEXDB directory
+  rm -rf "$INSTALL_DIR"
+  echo "✅ Installation directory removed."
+else
+  echo "❓ Installation directory not found. Skipping."
+fi
 
 # Remove firewall rules
-echo -e "\n🧱 Removing firewall rules..."
-if command -v ufw &> /dev/null; then
-  ufw delete allow 8080/tcp &> /dev/null || true
-  echo "UFW rules removed"
+echo -e "\n🔥 Removing firewall rules..."
+ufw delete allow 8080/tcp 2>/dev/null
+echo "✅ Firewall rules removed."
+
+# Check for and remove ip6tables rules if they exist
+if [ -x "$(command -v ip6tables)" ]; then
+  ip6tables -D INPUT -p tcp --dport 8080 -j ACCEPT 2>/dev/null
+  echo "✅ IPv6 firewall rules removed."
 fi
 
-if command -v ip6tables &> /dev/null; then
-  ip6tables -D INPUT -p tcp --dport 8080 -j ACCEPT &> /dev/null || true
-  echo "IP6Tables rules removed"
-fi
+echo -e "\n🧹 Cleaning up..."
+# Remove any log files
+journalctl --vacuum-time=1s --unit=nexdb >/dev/null 2>&1
+echo "✅ Logs cleaned."
 
-# Ask for confirmation before deleting files (unless in force mode)
-if [ "$FORCE_MODE" = false ]; then
-  # Check if script is running in a pipe (e.g., curl | bash)
-  if [ -t 0 ]; then
-    # Running in interactive terminal
-    echo -e "\n⚠️ Warning: This will delete all NEXDB files and data, including backups."
-    echo -e "MySQL and PostgreSQL databases will NOT be removed."
-    echo -e "Are you sure you want to continue? (y/n)"
-    read -n 1 -r REPLY
-    echo
-
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo -e "\n❌ Uninstallation cancelled. Service is still disabled but files remain."
-      exit 1
-    fi
-  else
-    # Running in a pipe (e.g., curl | bash)
-    echo -e "\n⚠️ Warning: This script appears to be running from a pipe (curl | bash)."
-    echo -e "Interactive confirmation is not possible in this mode."
-    echo -e "Please run this script directly with one of the following methods:"
-    echo -e "  1. Download and run: wget https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-uninstall.sh && sudo bash nexdb-uninstall.sh"
-    echo -e "  2. Use force mode: curl -sSL https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-uninstall.sh | sudo bash -s -- --force"
-    echo -e "\n❌ Uninstallation cancelled. Service is disabled but files remain."
-    exit 1
-  fi
-fi
-
-# Remove application directory
-echo -e "\n🗑️ Removing NEXDB files..."
-rm -rf /opt/nexdb
-
-echo -e "\n✅ NEXDB has been uninstalled successfully!"
-echo -e "Note: MySQL and PostgreSQL databases have not been removed."
-echo -e "If you want to remove them as well, run:"
-echo -e "  - For MySQL: sudo apt purge mysql-server"
-echo -e "  - For PostgreSQL: sudo apt purge postgresql postgresql-contrib" 
+echo -e "\n🎉 NEXDB has been successfully uninstalled!"
+echo -e "\nNote: MySQL and PostgreSQL database servers are still installed."
+echo -e "If you want to remove them as well, you can use the following commands:"
+echo -e "- For MySQL: sudo apt remove --purge mysql-server mysql-client mysql-common -y && sudo rm -rf /var/lib/mysql /etc/mysql"
+echo -e "- For PostgreSQL: sudo apt remove --purge postgresql postgresql-contrib -y && sudo rm -rf /var/lib/postgresql /etc/postgresql"
+echo -e "\nThank you for using NEXDB!" 

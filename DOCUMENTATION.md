@@ -52,6 +52,7 @@ The application follows a modular architecture for better maintainability:
 │   └── __init__.py         # Application initialization
 ├── config/                 # Configuration files
 │   └── __init__.py         # Configuration parameters
+├── backups/                # Backup storage location
 ├── nexdb-install.sh        # Installation script
 └── requirements.txt        # Python dependencies
 ```
@@ -95,19 +96,19 @@ The application follows a modular architecture for better maintainability:
 ### Automatic Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/nexdb/main/nexdb-install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-install.sh | sudo bash
 ```
 
 ### Manual Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/nexdb.git
+git clone https://github.com/nexwinds/nexdb-app.git
 ```
 
 2. Run the installation script:
 ```bash
-cd nexdb
+cd nexdb-app
 chmod +x nexdb-install.sh
 sudo ./nexdb-install.sh
 ```
@@ -187,9 +188,20 @@ sudo journalctl -u nexdb.service
 
 ### Setup Development Environment
 
-1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run in development mode: `python -m app`
+1. Clone the repository:
+```bash
+git clone https://github.com/nexwinds/nexdb-app.git
+```
+
+2. Install dependencies: 
+```bash
+pip install -r requirements.txt
+```
+
+3. Run in development mode: 
+```bash
+python -m app
+```
 
 ### Coding Standards
 
@@ -197,6 +209,7 @@ sudo journalctl -u nexdb.service
 - Use semantic HTML for templates
 - Follow DRY (Don't Repeat Yourself) and KISS (Keep It Simple, Stupid) principles
 - Implement modular components for maintainability
+- Place components and APIs in feature or page directories
 
 ### Contributing
 

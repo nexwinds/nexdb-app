@@ -44,25 +44,25 @@
 ### One-Line Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/nexdb/main/nexdb-install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/nexwinds/nexdb-app/main/nexdb-install.sh | sudo bash
 ```
 
 ### Manual Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/nexdb.git
+git clone https://github.com/nexwinds/nexdb-app.git
 ```
 
 2. Run the installation script:
 ```bash
-cd nexdb
+cd nexdb-app
 chmod +x nexdb-install.sh
 sudo ./nexdb-install.sh
 ```
 
 The script will:
-- Install all dependencies
+- Install all dependencies (Python, MySQL, PostgreSQL)
 - Set up the Flask application with database support
 - Configure systemd service for automatic startup
 - Create an admin user and secure password
@@ -87,17 +87,15 @@ Log in using the admin credentials displayed at the end of the installation.
 ```
 /opt/nexdb/
 ├── app/                    # Flask application
-│   ├── models/             # Database models
-│   ├── routes/             # API and web routes
+│   ├── models/             # Database models (user, backup, db_credential)
+│   ├── routes/             # API and web routes (api, auth, backup, database, etc.)
 │   ├── services/           # Business logic
 │   ├── static/             # CSS, JS, images
 │   └── templates/          # Tailwind HTML templates
 ├── config/                 # Configuration files
-├── scripts/                # Utility scripts
-├── utils/                  # Helper functions
 ├── backups/                # Backup destination
 ├── nexdb-install.sh        # Installation script
-└── nexdb.service           # systemd service file
+└── requirements.txt        # Python dependencies
 ```
 
 ## 🚀 Example API Usage
@@ -149,6 +147,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-Crafted with ❤️ by [Diogo Cardoso]
+Crafted with ❤️ by [Diogo Cardoso](https://github.com/nexwinds)
 
 *NEXDB - Simple tools for powerful people.* 

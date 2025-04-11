@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Management - NEXDB{% endblock %}
+{% block page_title %}Backup Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Page Header & Actions -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Database Backups</h1>
+    <div class="flex space-x-3">
+      <a href="{{ url_for('backup.create_backup') }}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+        <i class="fas fa-save mr-2"></i>
+        Create Backup
+      </a>
+      <a href="{{ url_for('backup.schedule_backup') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+        <i class="fas fa-calendar-alt mr-2"></i>
+        Schedule Backup
+      </a>
+    </div>
+  </div>
+  
+  <!-- Backup Management and Statistics -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Backups List -->
+    <div class="lg:col-span-2">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 flex items-center justify-between">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Backups</h2>
+          <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Filter:</span>
+            <select id="backup-filter" class="text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500">
+              <option value="all">All</option>
+              <option value="mysql">MySQL</option>
+              <option value="postgres">PostgreSQL</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          {% if backups %}
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Database</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Size</th>
+                  <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {% for backup in backups %}
+                  <tr class="backup-row {{ backup.db_type }}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center">
+                        <i class="fas fa-database {{ 'text-blue-600 dark:text-blue-500' if backup.db_type == 'mysql' else 'text-green-600 dark:text-green-500' }} mr-3"></i>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ backup.db_name }}</div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full {{ 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-500' if backup.db_type == 'mysql' else 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-500' }}">
+                        {{ backup.db_type }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') if backup.created_at else 'Unknown' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="text-sm text-gray-500 dark:text-gray-400">{{ '{:.2f}'.format(backup.file_size / 1024 / 1024) }} MB</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex justify-end space-x-2">
+                        <a href="{{ url_for('backup.download_backup', backup_id=backup.id) }}" class="text-primary-600 dark:text-primary-500 hover:text-primary-800 dark:hover:text-primary-400" title="Download">
+                          <i class="fas fa-download"></i>
+                        </a>
+                        <button class="text-indigo-600 dark:text-indigo-500 hover:text-indigo-800 dark:hover:text-indigo-400 restore-backup" data-id="{{ backup.id }}" data-db-name="{{ backup.db_name }}" data-db-type="{{ backup.db_type }}" title="Restore">
+                          <i class="fas fa-undo-alt"></i>
+                        </button>
+                        <a href="{{ url_for('backup.delete_backup', backup_id=backup.id) }}" class="text-red-600 dark:text-red-500 hover:text-red-800 dark:hover:text-red-400" title="Delete" onclick="return confirm('Are you sure you want to delete this backup?');">
+                          <i class="fas fa-trash-alt"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="p-10 text-center text-gray-500 dark:text-gray-400">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-save text-gray-300 dark:text-gray-600 text-5xl mb-3"></i>
+                <p>No backups found</p>
+                <a href="{{ url_for('backup.create_backup') }}" class="mt-2 inline-flex items-center px-3 py-1 text-sm font-medium text-primary-600 dark:text-primary-500 hover:text-primary-700 dark:hover:text-primary-400">
+                  <i class="fas fa-plus mr-1"></i> Create Backup
+                </a>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Backup Info Sidebar -->
+    <div class="space-y-6">
+      <!-- Storage Stats -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Backup Storage</h2>
+        </div>
+        <div class="p-5">
+          {% set total_backups = backups|length %}
+          {% set total_size = 0 %}
+          {% set mysql_count = 0 %}
+          {% set postgres_count = 0 %}
+          {% for backup in backups %}
+            {% set total_size = total_size + backup.file_size %}
+            {% if backup.db_type == 'mysql' %}
+              {% set mysql_count = mysql_count + 1 %}
+            {% else %}
+              {% set postgres_count = postgres_count + 1 %}
+            {% endif %}
+          {% endfor %}
+          
+          <!-- Total Storage -->
+          <div class="mb-4">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total Storage</span>
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{ '{:.2f}'.format(total_size / 1024 / 1024) }} MB</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div class="bg-primary-600 h-2.5 rounded-full" style="width: 100%"></div>
+            </div>
+          </div>
+          
+          <!-- MySQL Backups -->
+          <div class="mb-4">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">MySQL Backups</span>
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{ mysql_count }} / {{ total_backups }}</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ (mysql_count / total_backups * 100) if total_backups > 0 else 0 }}%"></div>
+            </div>
+          </div>
+          
+          <!-- PostgreSQL Backups -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">PostgreSQL Backups</span>
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{ postgres_count }} / {{ total_backups }}</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div class="bg-green-600 h-2.5 rounded-full" style="width: {{ (postgres_count / total_backups * 100) if total_backups > 0 else 0 }}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Scheduled Backups -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 flex items-center justify-between">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Scheduled Backups</h2>
+          <a href="{{ url_for('backup.schedule_backup') }}" class="text-sm text-primary-600 dark:text-primary-500 hover:text-primary-800 dark:hover:text-primary-400">
+            <i class="fas fa-plus mr-1"></i> Add
+          </a>
+        </div>
+        
+        <div class="overflow-hidden">
+          {% if backup_schedules %}
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+              {% for schedule in backup_schedules %}
+                <div class="p-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <i class="fas fa-database {{ 'text-blue-600 dark:text-blue-500' if schedule.db_type == 'mysql' else 'text-green-600 dark:text-green-500' }} mr-3"></i>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ schedule.db_name }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ schedule.db_type }}</div>
+                      </div>
+                    </div>
+                    <a href="{{ url_for('backup.delete_schedule', db_type=schedule.db_type, db_name=schedule.db_name) }}" class="text-red-600 dark:text-red-500 hover:text-red-800 dark:hover:text-red-400" onclick="return confirm('Are you sure you want to delete this backup schedule?');">
+                      <i class="fas fa-trash-alt"></i>
+                    </a>
+                  </div>
+                  <div class="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-300 font-mono">
+                    {{ schedule.schedule }}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+              <i class="fas fa-calendar-alt text-gray-300 dark:text-gray-600 text-2xl mb-2"></i>
+              <p class="text-sm">No scheduled backups</p>
+              <a href="{{ url_for('backup.schedule_backup') }}" class="mt-2 inline-block text-xs font-medium text-primary-600 dark:text-primary-500 hover:underline">Set up a backup schedule</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Backup Settings -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Backup Settings</h2>
+        </div>
+        
+        <div class="p-5 space-y-4">
+          <div>
+            <label for="retention-limit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Retention Limit</label>
+            <div class="mt-1 flex items-center">
+              <select id="retention-limit" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500">
+                <option value="0">No Limit</option>
+                <option value="5">5 Backups</option>
+                <option value="10">10 Backups</option>
+                <option value="20">20 Backups</option>
+                <option value="30">30 Backups</option>
+                <option value="50">50 Backups</option>
+              </select>
+              <button class="ml-2 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm">Apply</button>
+            </div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum number of backups to keep per database</p>
+          </div>
+          
+          {% if session.get('is_admin', False) %}
+            <div class="mt-4">
+              <label for="backup-location" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Backup Location</label>
+              <div class="mt-1 flex items-center">
+                <input type="text" id="backup-location" value="{{ os.environ.get('NEXDB_BACKUP_DIR', '/opt/nexdb/backups') }}" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500" readonly>
+                <a href="{{ url_for('settings.backup') }}" class="ml-2 px-3 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm">Change</a>
+              </div>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Directory where backups are stored</p>
+            </div>
+            
+            <div class="mt-4">
+              <a href="{{ url_for('settings.s3') }}" class="inline-flex items-center text-sm text-primary-600 dark:text-primary-500 hover:text-primary-800 dark:hover:text-primary-400">
+                <i class="fas fa-cloud mr-1"></i> Configure S3 Remote Storage
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Restore Backup Modal -->
+<div id="restore-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 flex items-center justify-between rounded-t-lg">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Restore Backup</h3>
+      <button id="close-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="p-6">
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        You are about to restore the backup for <span id="restore-db-name" class="font-semibold text-gray-900 dark:text-gray-100"></span>. This will overwrite the current database with the backup content.
+      </p>
+      
+      <div class="mb-4">
+        <div class="flex items-center mb-2">
+          <i class="fas fa-exclamation-triangle text-yellow-500 dark:text-yellow-400 mr-2"></i>
+          <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Warning</span>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          This action cannot be undone. Make sure you have a backup of your current database if needed.
+        </p>
+      </div>
+      
+      <div class="flex justify-end space-x-3">
+        <button id="cancel-restore" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+          Cancel
+        </button>
+        <button id="confirm-restore" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+          Restore Backup
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Filter functionality for backups
+  document.addEventListener('DOMContentLoaded', function() {
+    const filter = document.getElementById('backup-filter');
+    const backupRows = document.querySelectorAll('.backup-row');
+    
+    if (filter) {
+      filter.addEventListener('change', function() {
+        const selectedType = this.value;
+        
+        backupRows.forEach(row => {
+          if (selectedType === 'all' || row.classList.contains(selectedType)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    }
+    
+    // Restore backup modal functionality
+    const restoreButtons = document.querySelectorAll('.restore-backup');
+    const restoreModal = document.getElementById('restore-modal');
+    const closeModal = document.getElementById('close-modal');
+    const cancelRestore = document.getElementById('cancel-restore');
+    const confirmRestore = document.getElementById('confirm-restore');
+    const restoreDbName = document.getElementById('restore-db-name');
+    
+    let currentBackupId = null;
+    let currentDbType = null;
+    let currentDbName = null;
+    
+    function openModal(backupId, dbType, dbName) {
+      currentBackupId = backupId;
+      currentDbType = dbType;
+      currentDbName = dbName;
+      
+      restoreDbName.textContent = `${dbType}/${dbName}`;
+      restoreModal.classList.remove('hidden');
+    }
+    
+    function closeModalFn() {
+      restoreModal.classList.add('hidden');
+      currentBackupId = null;
+      currentDbType = null;
+      currentDbName = null;
+    }
+    
+    restoreButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const backupId = this.dataset.id;
+        const dbType = this.dataset.dbType;
+        const dbName = this.dataset.dbName;
+        openModal(backupId, dbType, dbName);
+      });
+    });
+    
+    closeModal.addEventListener('click', closeModalFn);
+    cancelRestore.addEventListener('click', closeModalFn);
+    
+    confirmRestore.addEventListener('click', function() {
+      // In a real application, this would call an API endpoint to restore the backup
+      // For now, we'll just show an alert
+      alert(`Restoring backup ID ${currentBackupId} for ${currentDbType}/${currentDbName}`);
+      closeModalFn();
+    });
+  });
+</script>
+{% endblock %} 

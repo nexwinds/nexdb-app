@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - NEXDB</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <!-- Logo and Title -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-600 text-white rounded-full mb-4">
+        <i class="fas fa-database text-2xl"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900">NEXDB</h1>
+      <p class="text-gray-600">Database Management Control Panel</p>
+    </div>
+    
+    <!-- Login Form -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div class="p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-6">Sign In</h2>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="mb-6">
+              {% for category, message in messages %}
+                {% set alert_class = {
+                  'success': 'bg-green-100 text-green-800',
+                  'info': 'bg-blue-100 text-blue-800',
+                  'warning': 'bg-yellow-100 text-yellow-800',
+                  'danger': 'bg-red-100 text-red-800'
+                } %}
+                {% set icon_class = {
+                  'success': 'fa-check-circle',
+                  'info': 'fa-info-circle',
+                  'warning': 'fa-exclamation-triangle',
+                  'danger': 'fa-exclamation-circle'
+                } %}
+                <div class="p-3 mb-2 rounded-lg flex items-center {{ alert_class.get(category, 'bg-gray-100 text-gray-800') }}">
+                  <i class="fas {{ icon_class.get(category, 'fa-info-circle') }} mr-2"></i>
+                  <span>{{ message }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        
+        <form method="post" action="{{ url_for('auth.login') }}">
+          <!-- Username Field -->
+          <div class="mb-4">
+            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-user text-gray-400"></i>
+              </div>
+              <input type="text" id="username" name="username" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter your username" required>
+            </div>
+          </div>
+          
+          <!-- Password Field -->
+          <div class="mb-6">
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-lock text-gray-400"></i>
+              </div>
+              <input type="password" id="password" name="password" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter your password" required>
+            </div>
+          </div>
+          
+          <!-- Submit Button -->
+          <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            Sign In
+          </button>
+        </form>
+      </div>
+      
+      <!-- Footer -->
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 text-center text-xs text-gray-600">
+        NEXDB - Next Generation Database Control Panel
+      </div>
+    </div>
+  </div>
+</body>
+</html> 

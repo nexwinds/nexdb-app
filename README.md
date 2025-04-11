@@ -1,0 +1,154 @@
+# 🚀 NEXDB – Next Generation Server Control Panel to Manage Databases
+
+**NEXDB** is a lightweight, intuitive, and script-deployable control panel to manage **MySQL** and **PostgreSQL** databases on Ubuntu 24.04 LTS. Built with **Python (Flask)** and styled using **Tailwind CSS**, NEXDB empowers developers and sysadmins with essential database tools from a simple, secure web interface.
+
+![NEXDB Banner](https://via.placeholder.com/800x400?text=NEXDB+Dashboard)
+
+## 🔧 Features
+
+- ✅ **Database Management**
+  - Install & manage MySQL and PostgreSQL databases
+  - Create database users with granular permissions
+  - View and manage database credentials
+  - Open external database ports (UFW) with a single click
+
+- 💾 **Backup Solutions**
+  - Create on-demand database backups
+  - Schedule automated backups (daily, weekly, monthly)
+  - Integration with Amazon S3 for remote backup storage
+  - Download or delete backups from the web interface
+
+- 👥 **Multi-User Support**
+  - Role-based access control
+  - Admin and regular user accounts
+  - Individual user settings and preferences
+
+- 🔄 **Theme Support**
+  - Toggle between light and dark themes
+  - Personalized theme preferences per user
+
+- 🧰 **API Interface**
+  - RESTful API for automation and scripting
+  - Token-based authentication for secure API access
+  - Complete API documentation included
+
+- 🛡️ **Security Features**
+  - Session timeout configuration
+  - Secure password management
+  - System runs as a systemd service on port `8080`
+
+## 📦 Installation
+
+> ⚠️ Supported on: **Ubuntu 24.04 LTS**
+
+### One-Line Installation
+
+```bash
+curl -sSL https://raw.githubusercontent.com/yourusername/nexdb/main/nexdb-install.sh | sudo bash
+```
+
+### Manual Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/nexdb.git
+```
+
+2. Run the installation script:
+```bash
+cd nexdb
+chmod +x nexdb-install.sh
+sudo ./nexdb-install.sh
+```
+
+The script will:
+- Install all dependencies
+- Set up the Flask application with database support
+- Configure systemd service for automatic startup
+- Create an admin user and secure password
+- Start NEXDB on http://<your-ip>:8080
+
+## 🔐 Accessing the Panel
+
+After installation, open your browser:
+
+```
+http://<your-server-ip>:8080
+```
+
+Log in using the admin credentials displayed at the end of the installation.
+
+## 🖥️ Dashboard Preview
+
+![NEXDB Dashboard](https://via.placeholder.com/800x400?text=NEXDB+Dashboard+Preview)
+
+## 📁 Project Structure
+
+```
+/opt/nexdb/
+├── app/                    # Flask application
+│   ├── models/             # Database models
+│   ├── routes/             # API and web routes
+│   ├── services/           # Business logic
+│   ├── static/             # CSS, JS, images
+│   └── templates/          # Tailwind HTML templates
+├── config/                 # Configuration files
+├── scripts/                # Utility scripts
+├── utils/                  # Helper functions
+├── backups/                # Backup destination
+├── nexdb-install.sh        # Installation script
+└── nexdb.service           # systemd service file
+```
+
+## 🚀 Example API Usage
+
+### Get a list of databases:
+
+```bash
+curl -H "X-API-Token: your_api_token" http://<your-ip>:8080/api/databases
+```
+
+### Create a new database:
+
+```bash
+curl -X POST -H "X-API-Token: your_api_token" \
+  -H "Content-Type: application/json" \
+  -d '{"db_type": "mysql", "db_name": "my_new_db"}' \
+  http://<your-ip>:8080/api/databases/create
+```
+
+### Create a database backup:
+
+```bash
+curl -X POST -H "X-API-Token: your_api_token" \
+  -H "Content-Type: application/json" \
+  -d '{"db_type": "postgres", "db_name": "my_database"}' \
+  http://<your-ip>:8080/api/backups/create
+```
+
+## 🔐 Security Recommendations
+
+- Change the admin password immediately after installation
+- Consider placing NEXDB behind a reverse proxy with SSL (like Nginx)
+- Restrict access to the web interface using IP-based firewall rules
+- Regularly update the application and its dependencies
+
+## 🤝 Contributing
+
+Pull requests are welcome! Please feel free to submit issues for bugs or feature requests.
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add some amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+Crafted with ❤️ by [Diogo Cardoso]
+
+*NEXDB - Simple tools for powerful people.* 

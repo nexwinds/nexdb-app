@@ -5,8 +5,143 @@ import boto3
 from app.models import db
 from app.models.backup import Backup
 from config import BACKUP_DIR, S3_ENABLED, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY, S3_REGION
+import shutil
+
+class Backup:
+    """Simple backup model"""
+    def __init__(self, id, db_name, db_type, file_path, created_at, file_size=0):
+        self.id = id
+        self.db_name = db_name
+        self.db_type = db_type  # 'mysql' or 'postgres'
+        self.file_path = file_path
+        self.created_at = created_at
+        self.file_size = file_size
 
 class BackupService:
+    """Service for database backups"""
+    # In-memory backup storage (for development/fallback)
+    _backups = []
+    _backup_dir = os.environ.get('NEXDB_BACKUP_DIR', '/opt/nexdb/backups')
+    
+    @classmethod
+    def get_all_backups(cls, limit=None):
+        """Get all backups, optionally limited"""
+        # Sort by creation date, newest first
+        sorted_backups = sorted(
+            cls._backups, 
+            key=lambda b: b.created_at if hasattr(b, 'created_at') else datetime.datetime.now(),
+            reverse=True
+        )
+        
+        if limit:
+            return sorted_backups[:limit]
+        return sorted_backups
+    
+    @classmethod
+    def create_mysql_backup(cls, db_name):
+        """Create a MySQL database backup"""
+        # Ensure backup directory exists
+        os.makedirs(cls._backup_dir, exist_ok=True)
+        
+        # Generate backup file path
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_path = os.path.join(cls._backup_dir, f"{db_name}_mysql_{timestamp}.sql")
+        
+        try:
+            # Execute mysqldump command
+            result = subprocess.run(
+                ['mysqldump', db_name, '-r', file_path],
+                capture_output=True, check=False
+            )
+            
+            if result.returncode == 0 and os.path.exists(file_path):
+                # Get file size
+                file_size = os.path.getsize(file_path)
+                
+                # Create backup record
+                next_id = max([b.id for b in cls._backups], default=0) + 1
+                backup = Backup(
+                    id=next_id,
+                    db_name=db_name,
+                    db_type='mysql',
+                    file_path=file_path,
+                    created_at=datetime.datetime.now(),
+                    file_size=file_size
+                )
+                
+                # Add to in-memory storage
+                cls._backups.append(backup)
+                
+                return backup
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+        
+        return None
+    
+    @classmethod
+    def create_postgres_backup(cls, db_name):
+        """Create a PostgreSQL database backup"""
+        # Ensure backup directory exists
+        os.makedirs(cls._backup_dir, exist_ok=True)
+        
+        # Generate backup file path
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_path = os.path.join(cls._backup_dir, f"{db_name}_postgres_{timestamp}.sql")
+        
+        try:
+            # Execute pg_dump command
+            result = subprocess.run(
+                ['pg_dump', '-f', file_path, db_name],
+                capture_output=True, check=False
+            )
+            
+            if result.returncode == 0 and os.path.exists(file_path):
+                # Get file size
+                file_size = os.path.getsize(file_path)
+                
+                # Create backup record
+                next_id = max([b.id for b in cls._backups], default=0) + 1
+                backup = Backup(
+                    id=next_id,
+                    db_name=db_name,
+                    db_type='postgres',
+                    file_path=file_path,
+                    created_at=datetime.datetime.now(),
+                    file_size=file_size
+                )
+                
+                # Add to in-memory storage
+                cls._backups.append(backup)
+                
+                return backup
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+        
+        return None
+    
+    @classmethod
+    def delete_backup(cls, backup_id):
+        """Delete a backup by ID"""
+        backup = None
+        for b in cls._backups:
+            if b.id == backup_id:
+                backup = b
+                break
+                
+        if backup and os.path.exists(backup.file_path):
+            try:
+                # Remove the file
+                os.remove(backup.file_path)
+                
+                # Remove from in-memory storage
+                cls._backups.remove(backup)
+                
+                return True
+            except (OSError, ValueError):
+                pass
+                
+        return False
+
     @staticmethod
     def create_backup(db_type, db_name, user_id=None):
         """Create a database backup"""
@@ -83,29 +218,6 @@ class BackupService:
             return None
     
     @staticmethod
-    def get_all_backups(limit=None):
-        """Get all backups with optional limit"""
-        query = Backup.query.order_by(Backup.created_at.desc())
-        if limit:
-            query = query.limit(limit)
-        return query.all()
-    
-    @staticmethod
     def get_backup_by_id(backup_id):
         """Get a backup by ID"""
-        return Backup.query.get(backup_id)
-    
-    @staticmethod
-    def delete_backup(backup_id):
-        """Delete a backup by ID"""
-        backup = Backup.query.get(backup_id)
-        if backup:
-            # Delete the file if it exists
-            if os.path.exists(backup.file_path):
-                os.remove(backup.file_path)
-            
-            # Delete the record
-            db.session.delete(backup)
-            db.session.commit()
-            return True
-        return False 
+        return Backup.query.get(backup_id) 

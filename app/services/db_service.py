@@ -1,70 +1,176 @@
 import subprocess
 import re
+import os
 import mysql.connector
 import psycopg2
 from app.models import db
 from app.models.db_credential import DBCredential
 
+class Database:
+    """Simple database model"""
+    def __init__(self, name, db_type, size=0, tables=0, last_backup=None):
+        self.name = name
+        self.type = db_type  # 'mysql' or 'postgres'
+        self.size = size
+        self.tables = tables
+        self.last_backup = last_backup
+
+class Credential:
+    """Database credential model"""
+    def __init__(self, id, db_name, db_type, username, password, host='localhost'):
+        self.id = id
+        self.db_name = db_name
+        self.db_type = db_type
+        self.username = username
+        self.password = password
+        self.host = host
+
 class DBService:
-    @staticmethod
-    def get_mysql_databases():
+    """Service for database operations"""
+    # In-memory credential storage (for development/fallback)
+    _credentials = []
+    
+    @classmethod
+    def get_mysql_databases(cls):
         """Get a list of MySQL databases"""
         try:
-            conn = mysql.connector.connect(user='root', host='localhost')
-            cursor = conn.cursor()
-            cursor.execute("SHOW DATABASES")
-            databases = [db[0] for db in cursor.fetchall() if db[0] not in ['information_schema', 'performance_schema', 'mysql', 'sys']]
-            cursor.close()
-            conn.close()
-            return databases
-        except Exception as e:
-            print(f"Error getting MySQL databases: {str(e)}")
-            return []
+            # Try to execute the command to list MySQL databases
+            result = subprocess.run(
+                ['mysql', '-e', 'SHOW DATABASES'],
+                capture_output=True, text=True, check=False
+            )
+            
+            if result.returncode == 0:
+                # Parse output and create Database objects
+                lines = result.stdout.strip().split('\n')[1:]  # Skip header line
+                databases = []
+                
+                for line in lines:
+                    db_name = line.strip()
+                    if db_name not in ['information_schema', 'performance_schema', 'mysql', 'sys']:
+                        databases.append(Database(
+                            name=db_name,
+                            db_type='mysql',
+                            size=0,  # We could get the actual size with another query
+                            tables=0  # Same for tables
+                        ))
+                
+                return databases
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+        
+        # Fallback: return empty list
+        return []
     
-    @staticmethod
-    def get_postgres_databases():
+    @classmethod
+    def get_postgres_databases(cls):
         """Get a list of PostgreSQL databases"""
         try:
-            conn = psycopg2.connect(user='postgres', host='localhost')
-            conn.autocommit = True
-            cursor = conn.cursor()
-            cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres'")
-            databases = [db[0] for db in cursor.fetchall()]
-            cursor.close()
-            conn.close()
-            return databases
-        except Exception as e:
-            print(f"Error getting PostgreSQL databases: {str(e)}")
-            return []
+            # Try to execute the command to list PostgreSQL databases
+            result = subprocess.run(
+                ['psql', '-c', '\\l'],
+                capture_output=True, text=True, check=False
+            )
+            
+            if result.returncode == 0:
+                # Parse output and create Database objects
+                lines = result.stdout.strip().split('\n')
+                databases = []
+                
+                # Very basic parsing - would need more robust parsing in production
+                for line in lines:
+                    if re.match(r'^\s+\w+\s+\|', line):
+                        db_name = line.strip().split('|')[0].strip()
+                        if db_name not in ['postgres', 'template0', 'template1']:
+                            databases.append(Database(
+                                name=db_name,
+                                db_type='postgres',
+                                size=0,
+                                tables=0
+                            ))
+                
+                return databases
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+        
+        # Fallback: return empty list
+        return []
     
-    @staticmethod
-    def create_mysql_database(db_name):
+    @classmethod
+    def create_mysql_database(cls, name, user=None, password=None):
         """Create a new MySQL database"""
         try:
-            conn = mysql.connector.connect(user='root', host='localhost')
-            cursor = conn.cursor()
-            cursor.execute(f"CREATE DATABASE {db_name}")
-            cursor.close()
-            conn.close()
+            # Create database
+            subprocess.run(
+                ['mysql', '-e', f"CREATE DATABASE {name}"],
+                check=False
+            )
+            
+            # Create user and grant privileges if credentials provided
+            if user and password:
+                subprocess.run([
+                    'mysql', '-e', 
+                    f"CREATE USER '{user}'@'localhost' IDENTIFIED BY '{password}'; "
+                    f"GRANT ALL PRIVILEGES ON {name}.* TO '{user}'@'localhost'; "
+                    f"FLUSH PRIVILEGES;"
+                ], check=False)
+                
+                # Store credentials
+                next_id = max([cred.id for cred in cls._credentials], default=0) + 1
+                cls._credentials.append(Credential(
+                    id=next_id,
+                    db_name=name,
+                    db_type='mysql',
+                    username=user,
+                    password=password
+                ))
+            
             return True
-        except Exception as e:
-            print(f"Error creating MySQL database: {str(e)}")
+        except subprocess.SubprocessError:
             return False
     
-    @staticmethod
-    def create_postgres_database(db_name):
+    @classmethod
+    def create_postgres_database(cls, name, user=None, password=None):
         """Create a new PostgreSQL database"""
         try:
-            conn = psycopg2.connect(user='postgres', host='localhost')
-            conn.autocommit = True
-            cursor = conn.cursor()
-            cursor.execute(f"CREATE DATABASE {db_name}")
-            cursor.close()
-            conn.close()
+            # Create database
+            subprocess.run(
+                ['createdb', name],
+                check=False
+            )
+            
+            # Create user and grant privileges if credentials provided
+            if user and password:
+                # Create user if it doesn't exist
+                subprocess.run([
+                    'psql', '-c', 
+                    f"CREATE USER {user} WITH ENCRYPTED PASSWORD '{password}'"
+                ], check=False)
+                
+                # Grant privileges
+                subprocess.run([
+                    'psql', '-c', 
+                    f"GRANT ALL PRIVILEGES ON DATABASE {name} TO {user}"
+                ], check=False)
+                
+                # Store credentials
+                next_id = max([cred.id for cred in cls._credentials], default=0) + 1
+                cls._credentials.append(Credential(
+                    id=next_id,
+                    db_name=name,
+                    db_type='postgres',
+                    username=user,
+                    password=password
+                ))
+            
             return True
-        except Exception as e:
-            print(f"Error creating PostgreSQL database: {str(e)}")
+        except subprocess.SubprocessError:
             return False
+    
+    @classmethod
+    def get_all_credentials(cls):
+        """Get all stored database credentials"""
+        return cls._credentials
     
     @staticmethod
     def create_mysql_user(username, password, db_name=None, user_id=None):
@@ -151,11 +257,6 @@ class DBService:
         except Exception as e:
             print(f"Error opening port: {str(e)}")
             return False
-    
-    @staticmethod
-    def get_all_credentials():
-        """Get all database credentials"""
-        return DBCredential.query.order_by(DBCredential.created_at.desc()).all()
     
     @staticmethod
     def get_credential_by_id(credential_id):

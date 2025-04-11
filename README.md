@@ -95,7 +95,7 @@ Log in using the admin credentials displayed at the end of the installation.
 
 ## 🛠️ Troubleshooting
 
-If you encounter issues during installation or when accessing the panel, we provide several scripts to help:
+If you encounter issues during installation or when accessing the panel, we provide comprehensive scripts to help:
 
 ### Common Issues
 
@@ -111,8 +111,11 @@ If you encounter issues during installation or when accessing the panel, we prov
 
 ### Provided Scripts
 
-- **nexdb-fix.sh**: Resolves common Python module import issues without requiring a full reinstallation
-- **nexdb-uninstall.sh**: Completely removes NEXDB from your system (keeps database data intact)
+- **nexdb-install.sh**: Our enhanced installation script with automatic error prevention and recovery
+- **nexdb-fix.sh**: A comprehensive fix script that resolves Python module import issues and other common problems
+- **nexdb-uninstall.sh**: Removes NEXDB from your system with two options:
+  - Standard mode: `sudo bash nexdb-uninstall.sh` (asks for confirmation)
+  - Force mode: `sudo bash nexdb-uninstall.sh --force` (no confirmation)
 - **verify-installation.sh**: Checks if your installation is working correctly
 - **test_connection.py**: Tests connectivity to the NEXDB server from your local machine
 
@@ -183,9 +186,12 @@ To upgrade NEXDB to a newer version:
    ```bash
    sudo bash nexdb-uninstall.sh
    ```
-3. Install the new version using the installation script
+3. Install the new version using the enhanced installation script:
+   ```bash
+   sudo bash nexdb-install.sh
+   ```
 
-For minor fixes, you can use the fix script without a full reinstallation:
+For fixing issues without a full reinstallation, use our comprehensive fix script:
 ```bash
 sudo bash nexdb-fix.sh
 ```

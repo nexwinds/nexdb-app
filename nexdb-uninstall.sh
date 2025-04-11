@@ -1,5 +1,6 @@
 #!/bin/bash
 # nexdb-uninstall.sh - Uninstallation script for NEXDB
+# Supports both interactive and force modes
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -7,16 +8,25 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo -e "\n🔄 NEXDB Uninstaller"
-echo -e "===================="
+# Check for --force flag
+FORCE_MODE=false
+if [[ "$1" == "--force" ]]; then
+  FORCE_MODE=true
+  echo -e "\n🔄 NEXDB Force Uninstaller"
+  echo -e "=========================="
+  echo -e "⚠️ Force mode enabled. NO confirmation will be requested."
+else
+  echo -e "\n🔄 NEXDB Uninstaller"
+  echo -e "===================="
+fi
 
 # Stop and disable the service
 echo -e "\n🛑 Stopping NEXDB service..."
-systemctl stop nexdb
-systemctl disable nexdb || true
+systemctl stop nexdb 2>/dev/null || true
+systemctl disable nexdb 2>/dev/null || true
 
 # Remove systemd service
-echo -e "\n🗑️  Removing systemd service..."
+echo -e "\n🗑️ Removing systemd service..."
 rm -f /etc/systemd/system/nexdb.service
 systemctl daemon-reload
 
@@ -32,19 +42,22 @@ if command -v ip6tables &> /dev/null; then
   echo "IP6Tables rules removed"
 fi
 
-# Ask for confirmation before deleting files
-echo -e "\n⚠️  Warning: This will delete all NEXDB files and data, including backups and databases."
-echo -e "Are you sure you want to continue? (y/n)"
-read -n 1 -r REPLY
-echo
+# Ask for confirmation before deleting files (unless in force mode)
+if [ "$FORCE_MODE" = false ]; then
+  echo -e "\n⚠️ Warning: This will delete all NEXDB files and data, including backups."
+  echo -e "MySQL and PostgreSQL databases will NOT be removed."
+  echo -e "Are you sure you want to continue? (y/n)"
+  read -n 1 -r REPLY
+  echo
 
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo -e "\n❌ Uninstallation cancelled. Service is still disabled but files remain."
-  exit 1
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "\n❌ Uninstallation cancelled. Service is still disabled but files remain."
+    exit 1
+  fi
 fi
 
 # Remove application directory
-echo -e "\n🗑️  Removing NEXDB files..."
+echo -e "\n🗑️ Removing NEXDB files..."
 rm -rf /opt/nexdb
 
 echo -e "\n✅ NEXDB has been uninstalled successfully!"

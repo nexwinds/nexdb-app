@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, jsonify
 from config import SECRET_KEY, HOST, PORT, ADMIN_USER, ADMIN_PASS
 import os
 
@@ -37,11 +37,22 @@ def create_app():
     def index():
         return redirect(url_for('dashboard.index'))
     
+    # Health check endpoint
+    @app.route('/health')
+    def health():
+        return jsonify({
+            'status': 'ok',
+            'version': app.config.get('VERSION', '1.0.0'),
+            'host': HOST,
+            'port': PORT
+        })
+    
     return app
 
 def run_app():
     """Run the application"""
     app = create_app()
+    print(f"Starting NEXDB on {HOST}:{PORT}...")
     app.run(host=HOST, port=PORT, debug=False)
     
 if __name__ == '__main__':

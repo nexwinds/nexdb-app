@@ -83,6 +83,26 @@ rsync -av \
 echo -e "\n🔒 Setting permissions..."
 chown -R root:root $INSTALL_DIR
 
+# Fix the main entry point to correctly import the run_app function
+echo -e "\n🔧 Creating the correct Python entry point..."
+mkdir -p "$INSTALL_DIR/app"
+
+# Create the correct __main__.py file
+cat << EOF > $INSTALL_DIR/app/__main__.py
+# Fix for correctly importing the run_app function
+import os
+import sys
+
+# Add the parent directory to the path so we can import app
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now we can import run_app from app
+from app import run_app
+
+if __name__ == '__main__':
+    run_app()
+EOF
+
 # Create systemd service
 echo -e "\n⚙️  Creating systemd service..."
 cat << EOF > /etc/systemd/system/nexdb.service
@@ -97,32 +117,64 @@ ExecStart=$INSTALL_DIR/venv/bin/python3 -m app
 Restart=always
 Environment="PATH=$INSTALL_DIR/venv/bin"
 Environment="PYTHONPATH=$INSTALL_DIR"
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# Create main entry point if it doesn't exist
-if [ ! -f "$INSTALL_DIR/app/__main__.py" ]; then
-  echo -e "\n📝 Creating main entry point..."
-  mkdir -p "$INSTALL_DIR/app"
-  cat << EOF > $INSTALL_DIR/app/__main__.py
-from app import run_app
-
-if __name__ == '__main__':
-    run_app()
-EOF
-fi
-
 # Allow web port in firewall
 echo -e "\n🔥 Configuring firewall..."
 ufw allow 8080/tcp
+echo "Rules updated"
+if [ -x "$(command -v ip6tables)" ]; then
+  ip6tables -A INPUT -p tcp --dport 8080 -j ACCEPT
+  echo "Rules updated (v6)"
+fi
 
 # Enable and start service
 echo -e "\n🚀 Starting NEXDB service..."
 systemctl daemon-reload
 systemctl enable nexdb
-systemctl start nexdb
+SERVICE_START=$(systemctl start nexdb 2>&1)
+if [ $? -ne 0 ]; then
+  echo -e "\n⚠️  Warning: Service failed to start properly. Error: $SERVICE_START"
+  echo -e "Checking logs for more details..."
+  journalctl -u nexdb --no-pager -n 20
+  echo -e "\nPlease check the application logs and configuration."
+else
+  echo -e "✅ Service started successfully!"
+fi
+
+# Verify service is actually running
+sleep 2
+SERVICE_STATUS=$(systemctl is-active nexdb)
+if [ "$SERVICE_STATUS" != "active" ]; then
+  echo -e "\n⚠️  Warning: Service is not running. Status: $SERVICE_STATUS"
+  echo -e "Checking logs for more details..."
+  journalctl -u nexdb --no-pager -n 20
+  
+  # Try to debug the Python import issue
+  echo -e "\n🔍 Debugging Python module import..."
+  pushd $INSTALL_DIR > /dev/null
+  echo "Testing Python import from $INSTALL_DIR:"
+  $INSTALL_DIR/venv/bin/python3 -c "import sys; print(sys.path); import app; print('App module found')"
+  if [ $? -ne 0 ]; then
+    echo -e "⚠️  Could not import app module. This may explain the service failure."
+  fi
+  popd > /dev/null
+fi
+
+# Check if the web service is responding
+echo -e "\n🔍 Verifying web service..."
+CURL_OUTPUT=$(curl -s -m 5 http://localhost:8080/health 2>&1)
+if [ $? -ne 0 ]; then
+  echo -e "⚠️  Warning: Web service is not responding on localhost:8080."
+  echo -e "This may indicate the application is not binding correctly or has an error."
+else
+  echo -e "✅ Web service is responding on localhost!"
+fi
 
 # Get admin password from app config
 if [ -f "$INSTALL_DIR/config/__init__.py" ]; then
@@ -144,4 +196,12 @@ echo -e "   Username: admin"
 echo -e "   Password: $ADMIN_PASS"
 echo -e "📦 MySQL and PostgreSQL are ready to use."
 echo -e "📁 Backups will be stored in $INSTALL_DIR/backups"
-echo -e "\n💡 For security reasons, you should change the admin password after first login." 
+echo -e "\n💡 For security reasons, you should change the admin password after first login."
+
+# Add troubleshooting note
+echo -e "\n📋 Troubleshooting:"
+echo -e "If you cannot access the panel, please check:"
+echo -e "1. Firewall settings: 'sudo ufw status'"
+echo -e "2. Service status: 'sudo systemctl status nexdb'"
+echo -e "3. Application logs: 'sudo journalctl -u nexdb'"
+echo -e "4. Network connectivity: 'curl -v http://localhost:8080'" 

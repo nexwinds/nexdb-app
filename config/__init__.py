@@ -7,7 +7,7 @@ APP_VERSION = "1.0.0"
 SECRET_KEY = secrets.token_hex(16)
 
 # Server Settings
-HOST = "0.0.0.0"
+HOST = "0.0.0.0"  # Ensures the app listens on all interfaces
 PORT = 8080
 
 # Database Settings

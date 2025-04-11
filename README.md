@@ -68,6 +68,21 @@ The script will:
 - Create an admin user and secure password
 - Start NEXDB on http://<your-ip>:8080
 
+### Verifying Your Installation
+
+After installation, you can verify that everything is working correctly:
+
+```bash
+sudo bash verify-installation.sh
+```
+
+This script will check:
+- Installation directory and files
+- Systemd service status
+- Network connectivity and port bindings
+- Firewall rules
+- Web service response
+
 ## 🔐 Accessing the Panel
 
 After installation, open your browser:
@@ -77,6 +92,31 @@ http://<your-server-ip>:8080
 ```
 
 Log in using the admin credentials displayed at the end of the installation.
+
+## 🛠️ Troubleshooting
+
+If you encounter issues during installation or when accessing the panel, we provide several scripts to help:
+
+### Common Issues
+
+1. **ERR_CONNECTION_REFUSED**: If you can't connect to the panel, check that the service is running:
+   ```bash
+   sudo systemctl status nexdb
+   ```
+
+2. **Python Import Error**: If logs show `ImportError: cannot import name 'run_app' from 'app'`, use our fix script:
+   ```bash
+   sudo bash nexdb-fix.sh
+   ```
+
+### Provided Scripts
+
+- **nexdb-fix.sh**: Resolves common Python module import issues without requiring a full reinstallation
+- **nexdb-uninstall.sh**: Completely removes NEXDB from your system (keeps database data intact)
+- **verify-installation.sh**: Checks if your installation is working correctly
+- **test_connection.py**: Tests connectivity to the NEXDB server from your local machine
+
+For comprehensive troubleshooting steps, refer to our [Troubleshooting Guide](TROUBLESHOOTING.md).
 
 ## 🖥️ Dashboard Preview
 
@@ -95,6 +135,9 @@ Log in using the admin credentials displayed at the end of the installation.
 ├── config/                 # Configuration files
 ├── backups/                # Backup destination
 ├── nexdb-install.sh        # Installation script
+├── nexdb-fix.sh            # Troubleshooting script for common issues
+├── nexdb-uninstall.sh      # Uninstallation script
+├── verify-installation.sh  # Installation verification script
 └── requirements.txt        # Python dependencies
 ```
 
@@ -130,6 +173,22 @@ curl -X POST -H "X-API-Token: your_api_token" \
 - Consider placing NEXDB behind a reverse proxy with SSL (like Nginx)
 - Restrict access to the web interface using IP-based firewall rules
 - Regularly update the application and its dependencies
+
+## 🔄 Upgrading and Maintenance
+
+To upgrade NEXDB to a newer version:
+
+1. First, back up any custom configurations
+2. Uninstall the current version:
+   ```bash
+   sudo bash nexdb-uninstall.sh
+   ```
+3. Install the new version using the installation script
+
+For minor fixes, you can use the fix script without a full reinstallation:
+```bash
+sudo bash nexdb-fix.sh
+```
 
 ## 🤝 Contributing
 
